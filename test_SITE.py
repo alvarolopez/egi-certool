@@ -151,11 +151,12 @@ def check_bdii(bdii):
     print "Checking BDII information (TBD)..."
 
 def main():
-    parser = OptionParser()
+    usage = """%prog [options] <siteBDII host>:<port>"""
+    parser = OptionParser(usage=usage)
 #    parser.add_option("-v", "--verbose", dest="verbose", action="store_true",
 #            default="False", help="Print verbose results")
     parser.add_option("-c", "--only-ces", dest="onlyce", action="store_true",
-            default=False, help="Check onlt Computing Elements")
+            default=False, help="Check only Computing Elements")
     parser.add_option("-s", "--only-ses", dest="onlyse", action="store_true",
             default=False, help="Check only Storage Elements")
 
