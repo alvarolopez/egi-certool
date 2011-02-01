@@ -1,0 +1,6 @@
+Executable      = "site_checks.sh";
+StdOutput       = "test.o";
+StdError        = "test.e";
+InputSandbox    = {"site_checks.sh"};
+OutputSandbox   = {"test.o","test.e"};
+OutputSandboxBaseDestURI   = "gsiftp://localhost";
