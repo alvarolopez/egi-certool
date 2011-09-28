@@ -7,11 +7,13 @@ import string
 from optparse import OptionParser
 from random import choice
 
-def print_error(ret, exit=False):
+def print_error(ret, exit=False, msg=""):
     if ret[0] != 0:
+        if not msg:
+            msg = ret[1]
         print >> sys.stderr, "-" * 80
-        print >> sys.stderr, "Error: Check the following information"
-        print >> sys.stderr, ret[1]
+        print >> sys.stderr, "ERROR: Check the following information:"
+        print >> sys.stderr, msg
         print >> sys.stderr, "-" * 80
         if exit:
             sys.exit(ret[0])
@@ -182,6 +184,19 @@ def check_ses(bdii, vo):
 def check_bdii(bdii):
     print "Checking BDII information (TBD)..."
 
+
+def get_proxy():
+    # Check for proxy validity
+    ret = commands.getstatusoutput("voms-proxy-info -exists")
+    print_error(ret, exit=True, msg="VOMS: No valid proxy found!")
+
+    ret = commands.getstatusoutput("voms-proxy-info -vo")
+    print_error(ret, exit=True)
+
+    vo = ret[1]
+    return vo
+
+
 def main():
     usage = """%prog [options] <siteBDII host>:<port>"""
     parser = OptionParser(usage=usage)
@@ -204,10 +219,9 @@ def main():
     if len(args) != 1:
         parser.error("Error, you have to specify one (and only one) siteBDII")
 
-    ret = commands.getstatusoutput("voms-proxy-info --vo")
-    print_error(ret, exit=True)
+    vo = get_proxy()
 
-    vo = ret[1]
+    print "Checking with VO '%s'" % vo
 
     bdii = args[-1]
     check_bdii(bdii)

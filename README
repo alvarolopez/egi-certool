@@ -1,13 +1,28 @@
-Small tool to run manual certification tests.
+Small tool to make the certification process of a new site less
+tedious. This tool will run several tests by itself, namely:
 
-This is not official, it is only a tool to help me with the
-preliminary certification tests to join our NGI. Use it at your
-own risk.
+ 1.- Query the BDII for the published CEs.
+ 2.- CE tests:
+    2.1.- For the lcg-CE:
+        - GridFTP is running
+        - globus-job-run directly to the CE.
+        - globus-job-run to the fork JM.
+        - globus-job-run to the queue
 
+        ...
+         
+    
 Execute 
  ./test_SITE.py --help
  
-for details on usage.
+for more details on usage.
+
+--
+NOTICE:
+
+This is not any official tool. It is only a tool to help me with
+the preliminary certification tests to join our NGI (NGI_IBERGRID).
+Use it at your own risk.
 
 --
 Questions, bugs, suggestions: Drop me a line
