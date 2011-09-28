@@ -64,8 +64,10 @@ def check_cream_ce(ce):
     """Do the tests for a CREAM CE"""
     rets = []
 
+    ce_hostport, dummy = ce.split("/", 1)
+
     logging.info("\t\tchecking glite-ce-allowed-submission")
-    cmd = "glite-ce-allowed-submission -n %s" % ce
+    cmd = "glite-ce-allowed-submission -n %s" % ce_hostport
     logging.debug("Executing '%s'", cmd)
     ret = commands.getstatusoutput(cmd)
     print_error(ret)
