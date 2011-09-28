@@ -4,6 +4,10 @@ import sys
 import commands 
 import string
 
+import datetime
+import logging
+import logging.handlers
+
 from optparse import OptionParser
 from random import choice
 
@@ -11,26 +15,24 @@ def print_error(ret, exit=False, msg=""):
     if ret[0] != 0:
         if not msg:
             msg = ret[1]
-        print >> sys.stderr, "-" * 80
-        print >> sys.stderr, "ERROR: Check the following information:"
-        print >> sys.stderr, msg
-        print >> sys.stderr, "-" * 80
+        logging.error("Check the following information:")
+        logging.error(msg)
         if exit:
             sys.exit(ret[0])
 
 
 def check_ces(bdii, vo):
-    print
-    print "#" * 80
-    print "Checking Computing Elements"
-    print "\tQuerying the BDII for the CEs"
+    logging.info("Checking Computing Elements")
+    logging.info("\tQuerying the BDII for the CEs")
     
-    ret = commands.getstatusoutput("lcg-info --list-ce --bdii %(bdii)s --sed --vo %(vo)s" % locals())
+    cmd = "lcg-info --list-ce --bdii %(bdii)s --sed --vo %(vo)s" % locals()
+    logging.debug("Executing '%s'" % cmd)
+    ret = commands.getstatusoutput(cmd)
     print_error(ret, exit=True)
     
     ces = ret[-1].splitlines()
     
-    print "\t\tFound: " + ",\n\t\t\t".join(ces)
+    logging.info("\t\tFound: " + ",\n\t\t\t".join(ces))
 
     checked = []
     for ce in ces:
@@ -42,23 +44,26 @@ def check_ces(bdii, vo):
     
         ce_host = ce.split(":")[0]
 
-        print "\tChecking %s" % ce_host
+        logging.info("\tChecking %s" % ce_host)
     
-        ret = commands.getstatusoutput("uberftp %s ls" % ce_host)
+        # Check the GridFTP
+        cmd = "uberftp %s ls" % ce_host
+        logging.debug("Executing '%s'" % cmd)
+        ret = commands.getstatusoutput(cmd)
         if ret[0] != 0:
             print_error(ret)
         else:
-            print "\t\tGridFTP OK"
+            logging.info("\t\tGridFTP OK")
     
         aux, queue = ce.split("/",1)
         if "8443" in ce:
     
-            print "\t\tchecking glite-ce-allowed-submission"
+            logging.info("\t\tchecking glite-ce-allowed-submission")
             ret = commands.getstatusoutput("glite-ce-allowed-submission -n %s" % aux)
             print_error(ret)
             rets.append(ret)
     
-            print "\t\tchecking glite-ce-job-submit"
+            logging.info("\t\tchecking glite-ce-job-submit")
             ret = commands.getstatusoutput("glite-ce-job-submit -n -a -r %s test_submission.jdl" % ce)
             print_error(ret)
             rets.append(ret)
@@ -66,11 +71,11 @@ def check_ces(bdii, vo):
                 url = ret[1].splitlines()[-1]
             else:
                 continue
-            print "\t\t\tJob ID: %s" % url
+            logging.info("\t\t\tJob ID: %s" % url)
             while True:
                 ret = commands.getstatusoutput("glite-ce-job-status -n %s" % url)
                 if "[DONE-OK]" in ret[1]:
-                    print "\t\tsubmission ok, check the following job id for further details %s" %url
+                    logging.info("\t\tsubmission ok, check the following job id for further details %s" % url)
                     break
                 elif "[DONE-FAILED]" in ret[1]:
                     ret = (1, ret[1] )
@@ -81,26 +86,32 @@ def check_ces(bdii, vo):
     
         else:
             # I will not waste much effort on this, since lcg-CE are condemned to disappear.
-            print "\t\tchecking globus-job-run to ce"
-            ret = commands.getstatusoutput("globus-job-run %s /bin/hostname" % aux) 
+            logging.info("\t\tchecking globus-job-run to ce")
+            cmd = "globus-job-run %s /bin/hostname" % aux
+            logging.debug("Executing '%s'" % cmd)
+            ret = commands.getstatusoutput(cmd) 
             print_error(ret)
             rets.append(ret)
     
-            print "\t\tchecking globus-job-run to fork"
-            ret = commands.getstatusoutput("globus-job-run %s/jobmanager-fork /bin/pwd" % aux) 
+            logging.info("\t\tchecking globus-job-run to fork")
+            cmd = "globus-job-run %s/jobmanager-fork /bin/pwd" % aux
+            logging.debug("Executing '%s'" % cmd)
+            ret = commands.getstatusoutput(cmd) 
             print_error(ret)
             rets.append(ret)
     
-            print "\t\tchecking globus-job-run to queue"
+            logging.info("\t\tchecking globus-job-run to queue")
             queue = queue.split("-")
-            ret = commands.getstatusoutput("globus-job-run %s/%s-%s -queue %s /bin/pwd" % tuple([aux] + queue)) 
+            cmd = "globus-job-run %s/%s-%s -queue %s /bin/pwd" % tuple([aux] + queue)
+            logging.debug("Executing '%s'" % cmd)
+            ret = commands.getstatusoutput(cmd) 
             print_error(ret)
             rets.append(ret)
     
         if not any([i[0] for i in rets]):
-            print "\t\tJob submission seems OK"
+            logging.info("\t\tJob submission seems OK")
         else:
-            print "\t\tJob submission has problems, check above errors"
+            logging.critical("\t\tJob submission has problems, check above errors")
 
 
 def filter_and_join_ldap(data, query):
@@ -119,16 +130,15 @@ def filter_and_join_ldap(data, query):
 
 
 def check_ses(bdii, vo):
-    print
-    print "#" * 80
-    print "Checking Storage Elements"
-    print "\tQuerying the BDII for the SEs"
+    logging.info("Checking Storage Elements")
+    logging.info("\tQuerying the BDII for the SEs")
 
+    logging.debug("Executing '%s'" % cmd)
     ret = commands.getstatusoutput("lcg-info --list-se --bdii %(bdii)s --sed --vo VO:%(vo)s" % locals())
     print_error(ret, exit=True)
 
     ses = ret[-1].splitlines()
-    print "\t\tFound: " + ",\n\t\t\t".join(ses)
+    logging.info("\t\tFound: " + ",\n\t\t\t".join(ses))
 
     checked = ["gridce05.ifca.es"]
     for se in ses:
@@ -138,22 +148,28 @@ def check_ses(bdii, vo):
         rets = []
         checked.append(se)
         
-        print "\tChecking %s" % se
-        ret = commands.getstatusoutput("uberftp %s ls" % se)
+        logging.info("\tChecking %s" % se)
+        cmd = "uberftp %s ls" % se
+        logging.debug("Executing '%s'" % cmd)
+        ret = commands.getstatusoutput(cmd)
         if ret[0] != 0:
             print_error(ret)
         else:
-            print "\t\tGridFTP is up"
+            logging.info("\t\tGridFTP is up")
         rets.append(ret)
 
 
-        ret = commands.getstatusoutput("ldapsearch -x -LLL -H ldap://%(bdii)s -b o=grid '(&(objectClass=GlueSATop) (GlueVOInfoAccessControlBaseRule=VO:%(vo)s) (GlueChunkKey=GlueSEUniqueID=%(se)s))' GlueVOInfoPath" % locals())
+        cmd = "ldapsearch -x -LLL -H ldap://%(bdii)s -b o=grid '(&(objectClass=GlueSATop) (GlueVOInfoAccessControlBaseRule=VO:%(vo)s) (GlueChunkKey=GlueSEUniqueID=%(se)s))' GlueVOInfoPath" % locals()
+        logging.debug("Executing '%s'" % cmd)
+        ret = commands.getstatusoutput(cmd)
         print_error(ret)
         rets.append(ret)
 
         se_paths = filter_and_join_ldap(ret[1], "GlueVOInfoPath")
 
-        ret = commands.getstatusoutput("ldapsearch -x -LLL -H ldap://%(bdii)s -b o=grid '(&(objectClass=GlueSEControlProtocol) (GlueChunkKey=GlueSEUniqueID=%(se)s) (GlueSEControlProtocolType=SRM) (GlueSEControlProtocolVersion=2.2.0))' GlueSEControlProtocolEndpoint" % locals())
+        cmd = "ldapsearch -x -LLL -H ldap://%(bdii)s -b o=grid '(&(objectClass=GlueSEControlProtocol) (GlueChunkKey=GlueSEUniqueID=%(se)s) (GlueSEControlProtocolType=SRM) (GlueSEControlProtocolVersion=2.2.0))' GlueSEControlProtocolEndpoint" % locals()
+        logging.debug("Executing '%s'" % cmd)
+        ret = commands.getstatusoutput(cmd)
         print_error(ret)
         rets.append(ret)
 
@@ -162,27 +178,31 @@ def check_ses(bdii, vo):
 #        ret = commands.getstatusoutput("lcg-cp -v --vo %(vo)s file:/etc/issue srm://%(se)s/%(se_path)s/%(randfile)s" % locals()) 
         for endpoint in endpoints:
             for se_path in se_paths:
-                print "\t\tUploading file to %(endpoint)s/%(se_path)s" % locals()
+                logging.info("\t\tUploading file to %(endpoint)s/%(se_path)s" % locals())
                 randfile = ''.join([choice(string.letters + string.digits) for i in range(15)])
-                ret = commands.getstatusoutput("lcg-cp -v -b --vo %(vo)s -D srmv2 file:/etc/issue %(endpoint)s/\?SFN=%(se_path)s/%(randfile)s" % locals())
+                cmd = "lcg-cp -v -b --vo %(vo)s -D srmv2 file:/etc/issue %(endpoint)s/\?SFN=%(se_path)s/%(randfile)s" % locals()
+                logging.debug("Executing '%s'" % cmd)
+                ret = commands.getstatusoutput(cmd)
                 print_error(ret)
                 rets.append(ret)
 
                 if ret[0] == 0:
-                    print "\t\tRemoving uploaded file"
-                    ret = commands.getstatusoutput("lcg-del -l -v -b --vo %(vo)s -D srmv2 %(endpoint)s/\?SFN=%(se_path)s/%(randfile)s" % locals())
+                    logging.info("\t\tRemoving uploaded file")
+                    cmd = "lcg-del -l -v -b --vo %(vo)s -D srmv2 %(endpoint)s/\?SFN=%(se_path)s/%(randfile)s" % locals()
+                    logging.debug("Executing '%s'" % cmd)
+                    ret = commands.getstatusoutput(cmd)
                     print_error(ret)
                     rets.append(ret)
 
         if not any([i[0] for i in rets]):
-            print "\t\tData management seems OK"
+            logging.info("\t\tData management seems OK")
         else:
-            print "\t\tData management has problems, check above errors"
+            logging.critical("\t\tData management has problems, check above errors")
 
 
 
 def check_bdii(bdii):
-    print "Checking BDII information (TBD)..."
+    logging.info("Checking BDII information (TBD)")
 
 
 def get_proxy():
@@ -196,6 +216,26 @@ def get_proxy():
     vo = ret[1]
     return vo
 
+
+def set_logging(level=logging.INFO):
+
+    outfile = "%s.log" % datetime.datetime.now().strftime("%Y%m%d_%H%M%S.%f")
+
+    logging.basicConfig(level=logging.DEBUG,
+            format="%(asctime)s %(name)-12s %(levelname)-8s %(message)s",
+            datefmt="%m-%d %H:%M",
+            filename=outfile,
+            filemode="w")
+
+    console = logging.StreamHandler()
+    console.setLevel(level)
+    formatter = logging.Formatter('%(levelname)-8s %(message)s')
+    console.setFormatter(formatter)
+    logging.getLogger('').addHandler(console)
+
+    logging.info("Detailed output for this run will be written to '%s'" % outfile)
+
+set_logging()
 
 def main():
     usage = """%prog [options] <siteBDII host>:<port>"""
@@ -221,7 +261,7 @@ def main():
 
     vo = get_proxy()
 
-    print "Checking with VO '%s'" % vo
+    logging.info("Checking with VO '%s'" % vo)
 
     bdii = args[-1]
     check_bdii(bdii)
