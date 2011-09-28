@@ -115,7 +115,7 @@ def check_ces(bdii, vo):
     logging.info("Checking Computing Elements")
     logging.info("\tQuerying the BDII for the CEs")
 
-    cmd = "lcg-info --list-ce --bdii %s --sed --vo %s" % locals()
+    cmd = "lcg-info --list-ce --bdii %(bdii)s --sed --vo %(vo)s" % locals()
     logging.debug("Executing '%s'", cmd)
     ret = commands.getstatusoutput(cmd)
     print_error(ret, do_exit=True)
