@@ -89,8 +89,8 @@ def check_cream_ce(ce):
         logging.debug("Executing '%s'", cmd)
         ret = commands.getstatusoutput(cmd)
         if "[DONE-OK]" in ret[1]:
-            logging.info("\t\tsubmission ok, check the following job \
-                    id for further details %s", url)
+            logging.info("\t\tsubmission ok, check the following job " + \
+                    "id for further details %s", url)
             break
         elif "[DONE-FAILED]" in ret[1]:
             ret = (1, ret[1])
@@ -98,6 +98,8 @@ def check_cream_ce(ce):
             break
     print_error(ret)
     rets.append(ret)
+
+    return rets
 
 
 def check_gridftp(host):
