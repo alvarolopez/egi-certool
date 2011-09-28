@@ -13,7 +13,7 @@ tedious. This tool will run several tests by itself, namely:
          
     
 Execute 
- ./test_SITE.py --help
+ ./run_tests.py --help
  
 for more details on usage.
 

@@ -278,7 +278,7 @@ def set_logging(level=logging.INFO):
     outfile = "%s.log" % datetime.datetime.now().strftime("%Y%m%d_%H%M%S.%f")
 
     logging.basicConfig(level=logging.DEBUG,
-            format="%(asctime)s %(name)-12s %(levelname)-8s %(message)s",
+            format="%(asctime)s %(levelname)-8s %(message)s",
             datefmt="%m-%d %H:%M",
             filename=outfile,
             filemode="w")
